@@ -1,0 +1,133 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ProductType {
+  food
+  drink
+}
+
+enum OrderStatus {
+  created
+  preparing
+  closed
+  canceled
+}
+
+model Client {
+  id        String    @id @unique @default(uuid())
+  name      String
+  email     String    @unique
+  password  String
+  role      String    @default("client")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime? @updatedAt @map("updated_at")
+
+  addresses     Address[]
+  orders        Order[]
+  orderProducts OrderProduct[]
+
+  @@map("users")
+}
+
+model Product {
+  id          Int         @id @default(autoincrement())
+  name        String
+  price       Decimal
+  description String
+  category    ProductType
+  photoUrl    String?
+  isActive    Boolean?    @default(true)
+
+  enterpriseId String     @map("enterprise_id")
+  enterprise   Enterprise @relation(fields: [enterpriseId], references: [id])
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime? @updatedAt @map("updated_at")
+
+  orderProducts OrderProduct[]
+
+  @@map("products")
+}
+
+model Enterprise {
+  id           String  @id @unique @default(uuid())
+  name         String
+  email        String  @unique
+  password     String
+  isOpen       Boolean @default(false)
+  openingHours String?
+  logoUrl      String?
+
+  role      String    @default("enterprise")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime? @updatedAt @map("updated_at")
+
+  products      Product[]
+  addressId     String         @unique @map("address_id")
+  address       Address        @relation("AddressEnterprise", fields: [addressId], references: [id])
+  orderProducts OrderProduct[]
+  Order         Order[]
+
+  @@map("enterprises")
+}
+
+model Address {
+  id       String   @id @default(uuid())
+  street   String
+  number   Int
+  city     String
+  state    String
+  isMain   Boolean  @default(false)
+  isActive Boolean? @default(true)
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime? @updatedAt @map("updated_at")
+
+  enterprise Enterprise? @relation("AddressEnterprise")
+
+  clientId String? @map("client_id")
+  client   Client? @relation(fields: [clientId], references: [id])
+
+  @@map("addresses")
+}
+
+model OrderProduct {
+  id           String @id @default(uuid())
+  orderId      String @map("order_id")
+  enterpriseId String @map("enterprise_id")
+  productId    Int    @map("product_id")
+  clientId     String @map("client_id")
+  quantity     Int
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime? @updatedAt @map("updated_at")
+
+  client     Client     @relation(fields: [clientId], references: [id])
+  order      Order      @relation(fields: [orderId], references: [id])
+  product    Product    @relation(fields: [productId], references: [id])
+  enterprise Enterprise @relation(fields: [enterpriseId], references: [id])
+
+  @@map("order_product")
+}
+
+model Order {
+  id           String      @id @default(uuid())
+  status       OrderStatus @default(created)
+  total        Decimal
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime?   @updatedAt @map("updated_at")
+  clientId     String
+  enterpriseId String
+
+  client         Client         @relation(fields: [clientId], references: [id])
+  enterprise     Enterprise     @relation(fields: [enterpriseId], references: [id])
+  ordersProducts OrderProduct[]
+
+  @@map("order")
+}
