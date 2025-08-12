@@ -24,6 +24,9 @@ ordersRoutes.get(
   '/enterprise/:enterpriseId',
   ordersController.getByEnterpriseId,
 );
+
+ordersRoutes.get('/enterprise/:enterpriseId/all', ordersController.getAll);
+
 ordersRoutes.patch('/:enterpriseId/:orderId', ordersController.update);
 
 export { ordersRoutes };

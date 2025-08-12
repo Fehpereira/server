@@ -308,6 +308,64 @@ class OrdersController {
     });
   }
 
+  async getAll(request: Request, response: Response) {
+    const paramsSchema = z.object({
+      enterpriseId: z.uuid(),
+    });
+
+    const { enterpriseId } = paramsSchema.parse(request.params);
+
+    const { user } = request;
+
+    if (!user || user.role !== 'enterprise' || user.id !== enterpriseId) {
+      throw new AppError('Unauthorized', 401);
+    }
+
+    const orders = await prisma.order.findMany({
+      where: {
+        enterpriseId,
+      },
+      include: {
+        client: {
+          select: {
+            name: true,
+          },
+        },
+        ordersProducts: {
+          select: {
+            quantity: true,
+            product: {
+              select: {
+                name: true,
+                price: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    const formattedOrders = orders.map((order) => {
+      const { ordersProducts, client, ...rest } = order;
+      return {
+        ...rest,
+        client: client.name,
+        items: ordersProducts.map((item) => {
+          return {
+            name: item.product.name,
+            price: item.product.price,
+            quantity: item.quantity,
+          };
+        }),
+      };
+    });
+
+    return response.json(formattedOrders);
+  }
+
   async update(request: Request, response: Response) {
     const bodySchema = z.object({
       status: z.enum(OrderStatus),
