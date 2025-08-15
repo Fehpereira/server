@@ -2,7 +2,8 @@ import { prisma } from '@/database/prisma';
 import { OrderStatus, Prisma } from '@prisma/client';
 import { AppError } from '@/utils/AppError';
 import { Request, Response } from 'express';
-import z, { string } from 'zod/v4';
+import z from 'zod/v4';
+import { io } from '@/app';
 
 class OrdersController {
   async create(request: Request, response: Response) {
@@ -104,6 +105,8 @@ class OrdersController {
             },
           },
         });
+
+        io.emit('novo pedido', orderCompleted);
 
         return response.json(orderCompleted);
       });
